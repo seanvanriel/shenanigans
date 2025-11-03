@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Event Timer</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        background: #111;
+        color: white;
+      }
+
+      #time {
+        font-size: 4rem;
+        margin-bottom: 40px;
+      }
+
+      #events div {
+        margin-bottom: 20px;
+        font-size: 1.5rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="time"></div>
+    <div id="events"></div>
+
+    <script>
+      // Define days
+      const sun = 0,
+        mon = 1,
+        tue = 2,
+        wed = 3,
+        thu = 4,
+        fri = 5,
+        sat = 6;
+
+      // Colours: [clock, event1, event2, ...]
+      const colours = ["white", "#0ff", "#f00"];
+
+      // Events
+      const events = [
+        ["Start 1e", [tue, wed, fri], 845],
+        ["Eind 1e", [tue, wed, fri], 1000],
+        ["Start 2e", [mon, tue, wed, thu], 1010],
+        ["Eind 2e", [mon, tue, wed, thu], 1125],
+        ["Start kwt", [mon, tue, wed, thu, fri], 1135, true],
+        ["Eind kwt", [mon, tue, wed, thu, fri], 1235, true],
+        ["Start 4e", [mon, tue, wed, thu, fri], 1305],
+        ["Eind 4e", [mon, tue, wed, thu, fri], 1420],
+        ["Start 5e", [mon, tue, fri], 1430],
+        ["Eind 5e", [mon, tue, fri], 1545],
+        ["Start 6e", [thu], 1555],
+        ["Eind 6e", [thu], 1710],
+      ];
+
+      function getTodaysEvents() {
+        const now = new Date();
+        const currentDay = now.getDay();
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+        const todaysEvents = events
+          .filter(([_, days]) => days.includes(currentDay))
+          .map(([name, days, time24, showNext]) => {
+            const hours = Math.floor(time24 / 100);
+            const minutes = time24 % 100;
+            const totalMinutes = hours * 60 + minutes;
+            return { name, hours, minutes, totalMinutes, showNext: !!showNext };
+          })
+          .sort((a, b) => a.totalMinutes - b.totalMinutes);
+
+        return todaysEvents.filter((e) => e.totalMinutes > currentMinutes);
+      }
+
+      function formatTime(num) {
+        return num.toString().padStart(2, "0");
+      }
+
+      function update() {
+        const now = new Date();
+        const currentTime = `${formatTime(now.getHours())}:${formatTime(now.getMinutes())}:${formatTime(now.getSeconds())}`;
+        const timeEl = document.getElementById("time");
+        timeEl.textContent = currentTime;
+        timeEl.style.color = colours[0];
+
+        const eventsDiv = document.getElementById("events");
+        eventsDiv.innerHTML = "";
+
+        const todaysEvents = getTodaysEvents();
+        if (todaysEvents.length === 0) {
+          const noEventEl = document.createElement("div");
+          noEventEl.textContent = "No more events today.";
+          noEventEl.style.color = colours[1 % colours.length];
+          eventsDiv.appendChild(noEventEl);
+          return;
+        }
+
+        let displayEvents = [];
+        for (let i = 0; i < todaysEvents.length; i++) {
+          displayEvents.push(todaysEvents[i]);
+          if (!todaysEvents[i].showNext) break;
+        }
+
+        for (let i = 0; i < displayEvents.length; i++) {
+          const e = displayEvents[i];
+          const eventTime = new Date(now);
+          eventTime.setHours(e.hours);
+          eventTime.setMinutes(e.minutes);
+          eventTime.setSeconds(0);
+
+          const diff = (eventTime - now) / 1000;
+          const mins = Math.floor(diff / 60);
+          const secs = Math.floor(diff % 60);
+
+          const eventEl = document.createElement("div");
+          const colourIndex = ((i + 1) % (colours.length - 1)) + 1; // loop through event colours
+          eventEl.style.color = colours[colourIndex];
+          eventEl.innerHTML = `${e.name} in ${mins} m ${secs} s<br>${formatTime(e.hours)}:${formatTime(e.minutes)}`;
+          eventsDiv.appendChild(eventEl);
+        }
+      }
+
+      setInterval(update, 1000);
+      update();
+    </script>
+  </body>
+</html>
